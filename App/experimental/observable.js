@@ -1,14 +1,14 @@
-﻿define(['../system', '../viewModelBinder'], function(system, viewModelBinder) {
+﻿define(['../durandal/system', '../durandal/viewModelBinder'], function(system, viewModelBinder) {
     var nonObservableTypes = ['[object Function]', '[object String]', '[object Boolean]', '[object Number]', '[object Date]', '[object RegExp]'];
     var ignoredProperties = ['__moduleId__', '__observable__'];
     var toString = Object.prototype.toString;
     var observableArrayMethods = ["remove", "removeAll", "destroy", "destroyAll", "replace"];
-    var arrayMethods = ["pop", "push", "reverse", "shift", "sort", "splice", "unshift"];
+    var arrayMethods = ["pop", "reverse", "shift", "sort", "splice", "unshift"];
     var arrayProto = Array.prototype;
     var observableArrayFunctions = ko.observableArray.fn;
 
     function canConvert(value) {
-        if (!value || value.nodeType === 1 || value.ko === ko) {
+        if (!value || system.isElement(value) || value.ko === ko) {
             return false;
         }
 
@@ -36,6 +36,19 @@
                 return methodCallResult;
             };
         });
+
+        original['push'] = function() {
+            if (deep) {
+                for(var i = 0; i < arguments.length; i++) {
+                    convert(arguments[i], true);
+                }
+            }
+
+            observable.valueWillMutate();
+            var methodCallResult = arrayProto['push'].apply(original, arguments);
+            observable.valueHasMutated();
+            return methodCallResult;
+        };
 
         if (deep) {
             for (var i = 0; i < original.length; i++) {
